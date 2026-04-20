@@ -11,10 +11,10 @@ from typing import Iterable
 
 ANN_RE = re.compile(
     r'@MangaSourceParser\s*\(\s*'
-    r'"([^"]+)"\s*,\s*'              # key
-    r'"([^"]+)"\s*,?\s*'             # title
-    r'(?:"([^"]*)"\s*,?\s*)?'        # locale optional
-    r'(?:ContentType\.([A-Z_]+)\s*,?\s*)?'  # content type optional
+    r'"([^"]+)"\s*,\s*'
+    r'"([^"]+)"\s*,?\s*'
+    r'(?:"([^"]*)"\s*,?\s*)?'
+    r'(?:ContentType\.([A-Z_]+)\s*,?\s*)?'
     r'\)',
     re.DOTALL,
 )
