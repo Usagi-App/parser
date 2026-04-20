@@ -185,6 +185,10 @@ onMounted(async () => {
             and content are outside your control.
           </p>
         </div>
+
+        <div class="hero__warning" id="kaoako">
+          <strong>Directory only. No manga content is hosted, cached, or proxied here. Visiting a source's site from a card takes you to the third-party site directly. </strong>
+        </div>
       </div>
 
       <aside class="hero__panel">
