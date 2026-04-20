@@ -96,21 +96,64 @@ onMounted(async () => {
   <div class="shell">
     <div class="shell__noise"></div>
 
-    <header class="hero card">
+    <header class="topbar card">
+      <div class="topbar__brand">
+        <div class="topbar__logo">U</div>
+        <div>
+          <p class="topbar__eyebrow">Usagi parser watch</p>
+          <strong>Kotatsu source catalog</strong>
+        </div>
+      </div>
+
+      <nav class="topbar__nav" aria-label="Primary">
+        <a href="#overview">Overview</a>
+        <a href="#sources">Sources</a>
+        <a href="#about">About</a>
+      </nav>
+
+      <div class="topbar__actions">
+        <a
+          class="button button--ghost"
+          href="https://github.com/YakaTeam/kotatsu-parsers"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Source repo
+        </a>
+        <a
+          class="button button--ghost"
+          href="https://github.com/AgentKush/kotatsu-parsers/tree/master/docs"
+          target="_blank"
+          rel="noreferrer"
+        >
+          Design reference
+        </a>
+      </div>
+    </header>
+
+    <header id="overview" class="hero card">
       <div class="hero__copy">
-        <p class="hero__eyebrow">Kotatsu source dashboard</p>
-        <h1>Fresh Vue/Vite site for tracking parser sources and health.</h1>
+        <p class="hero__eyebrow">Always dark. Static. Clear.</p>
+        <h1>Text1...</h1>
         <p class="hero__text">
-          This build follows the upstream catalog pattern instead of faking live parser verification. It
-          generates a static JSON snapshot from the YakaTeam parser source annotations and ships that file
-          with the site for fast loading.
+          Text2...
         </p>
         <div class="hero__actions">
-          <a class="button button--primary" href="https://github.com/YakaTeam/kotatsu-parsers" target="_blank" rel="noreferrer">
-            Inspect source repo
+          <a
+            class="button button--primary"
+            href="https://github.com/YakaTeam/kotatsu-parsers"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Open YakaTeam repo
           </a>
-          <a class="button button--ghost" href="https://github.com/YumemiProject/yumemiproject.github.io" target="_blank" rel="noreferrer">
-            Design reference
+          <a
+            class="button button--ghost"
+            href="https://github.com/AgentKush/kotatsu-parsers/tree/master/docs"
+            target="_blank"
+            rel="noreferrer"
+          >
+            Catalog docs reference
           </a>
         </div>
       </div>
@@ -118,7 +161,7 @@ onMounted(async () => {
       <aside class="hero__panel">
         <div class="hero__score-ring">
           <span>{{ healthScore }}%</span>
-          <small>Healthy</small>
+          <small>Available</small>
         </div>
         <ul class="hero__facts">
           <li>
@@ -144,23 +187,27 @@ onMounted(async () => {
         hint="Parsed from annotated Kotlin parser files"
       />
       <MetricCard
-        label="Working"
+        label="Available"
         :value="formatNumber(dataset.summary.working)"
         hint="Not marked @Broken upstream"
       />
       <MetricCard
         label="Broken"
         :value="formatNumber(dataset.summary.broken)"
-        hint="Marked @Broken upstream"
+        hint="Explicitly marked @Broken upstream"
       />
       <MetricCard
-        label="Blocked / unknown"
+        label="Other states"
         :value="formatNumber(dataset.summary.blocked + dataset.summary.unknown)"
-        hint="Unused in catalog mode"
+        hint="text3...."
       />
     </section>
 
-    <section class="info-banner card">
+    <section id="about" class="info-banner card">
+      <p>
+        External website buttons open third-party domains. That means the destination is outside this project
+        and outside GitHub Pages.
+      </p>
       <p>
         {{ dataset.disclaimer }}
       </p>
@@ -233,7 +280,7 @@ onMounted(async () => {
       <p>Reset the filters or generate the live dataset so the dashboard has real source records to render.</p>
     </section>
 
-    <section v-else :class="['sources', `sources--${view}`]">
+    <section v-else id="sources" :class="['sources', `sources--${view}`]">
       <SourceCard v-for="source in filteredSources" :key="source.id" :source="source" />
     </section>
   </div>
