@@ -1,0 +1,17 @@
+{
+  "generatedAt": null,
+  "sourceRepo": {
+    "owner": "AgentKush",
+    "repo": "kotatsu-parsers",
+    "branch": "master"
+  },
+  "summary": {
+    "total": 0,
+    "working": 0,
+    "broken": 0,
+    "blocked": 0,
+    "unknown": 0
+  },
+  "sources": [],
+  "disclaimer": "No generated dataset yet. Run npm run generate:data or let the GitHub Action publish the first snapshot."
+}
