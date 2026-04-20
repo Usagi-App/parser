@@ -1,11 +1,17 @@
 <script setup lang="ts">
-import { toLatencyLabel } from '@/lib/format'
+import { computed } from 'vue'
 import type { SourceItem } from '@/types'
 import StatusPill from './StatusPill.vue'
 
-defineProps<{
+const props = defineProps<{
   source: SourceItem
 }>()
+
+const websiteUrl = computed(() => {
+  const domain = props.source.domains[0]
+  if (!domain) return null
+  return domain.startsWith('http://') || domain.startsWith('https://') ? domain : `https://${domain}`
+})
 </script>
 
 <template>
@@ -26,21 +32,6 @@ defineProps<{
 
     <p class="source-card__path">{{ source.path }}</p>
 
-    <dl class="source-card__stats">
-      <div>
-        <dt>Latency</dt>
-        <dd>{{ toLatencyLabel(source.health.latencyMs) }}</dd>
-      </div>
-      <div>
-        <dt>HTTP</dt>
-        <dd>{{ source.health.httpStatus ?? '—' }}</dd>
-      </div>
-      <div>
-        <dt>Checked</dt>
-        <dd>{{ source.health.checkedAt ? 'Live' : 'Pending' }}</dd>
-      </div>
-    </dl>
-
     <div class="domain-list">
       <span v-for="domain in source.domains.slice(0, 4)" :key="domain" class="domain-chip">
         {{ domain }}
@@ -57,9 +48,14 @@ defineProps<{
       {{ source.health.reason }}
     </p>
 
+    <p class="source-card__warning">
+      External website opens a third-party domain. Use it at your own risk.
+    </p>
+
     <div class="source-card__actions">
-      <a :href="source.repoUrl" target="_blank" rel="noreferrer">Open parser</a>
-      <a :href="source.rawUrl" target="_blank" rel="noreferrer">Raw file</a>
+      <a v-if="websiteUrl" :href="websiteUrl" target="_blank" rel="noreferrer noopener">Open website</a>
+      <a :href="source.repoUrl" target="_blank" rel="noreferrer noopener">Open parser</a>
+      <a :href="source.rawUrl" target="_blank" rel="noreferrer noopener">Raw file</a>
     </div>
   </article>
 </template>
