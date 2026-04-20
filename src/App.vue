@@ -39,6 +39,7 @@ const LANGUAGE_NAMES: Record<string, string> = {
   ja: 'Japanese',
   ko: 'Korean',
   zh: 'Chinese',
+  multi: 'Multiple',
 }
 
 const statusOrder: Record<SourceStatus, number> = {
@@ -68,25 +69,37 @@ function withSearchText(source: SourceItem): SourceItem {
   return {
     ...source,
     languageName,
-    searchText: [
-      source.title,
-      source.key,
-      source.language,
-      languageName,
-      source.engine ?? '',
-      source.contentType ?? '',
-      source.path,
-      source.brokenReason ?? '',
-      ...(source.domains ?? []),
-    ]
-      .join(' ')
-      .toLowerCase(),
+    searchText: source.searchText
+      ? source.searchText
+      : [
+          source.title,
+          source.key,
+          source.language,
+          languageName,
+          source.engine ?? '',
+          source.contentType ?? '',
+          source.path,
+          source.brokenReason ?? '',
+          ...(source.domains ?? []),
+        ]
+          .join(' ')
+          .toLowerCase(),
   }
 }
 
 function normalizeDataset(next: SourceDataset): SourceDataset {
   return {
     ...next,
+    generatedBy: next.generatedBy ?? 'Static bundle',
+    byLocale: next.byLocale ?? {},
+    byType: next.byType ?? {},
+    duplicatesSkipped: next.duplicatesSkipped ?? [],
+    summary: {
+      ...next.summary,
+      nsfw:
+        next.summary.nsfw ??
+        next.sources.reduce((count, source) => count + (source.nsfw ? 1 : 0), 0),
+    },
     sources: next.sources.map(withSearchText),
   }
 }
@@ -270,6 +283,8 @@ onBeforeUnmount(() => {
       <div class="hero__copy">
         <p class="hero__eyebrow">Parser / Source Catalog</p>
 
+        <h1 class="hero__title">Browse source entries without the app clutter</h1>
+
         <p class="hero__text">
           This website serves only as an informational catalog of parser sources,
           extracted metadata, and availability indicators.
@@ -289,7 +304,7 @@ onBeforeUnmount(() => {
           </p>
         </div>
 
-        <div class="hero__warning" id="kaoako">
+        <div class="hero__warning">
           <strong>
             Catalog only. This website lists source metadata for reference and discovery.
             No reader application is provided here, and no source content is hosted,
@@ -348,9 +363,9 @@ onBeforeUnmount(() => {
       />
 
       <MetricCard
-        label="Locales"
-        :value="formatNumber(Object.keys(dataset.byLocale ?? {}).length)"
-        hint="Language buckets present in the catalog"
+        label="NSFW"
+        :value="formatNumber(dataset.summary.nsfw ?? 0)"
+        hint="Entries tagged as adult / explicit"
       />
     </section>
 
@@ -393,13 +408,9 @@ onBeforeUnmount(() => {
 
           <div class="sidebar__chips">
             <button :class="['chip-button', { 'is-active': status === 'all' }]" @click="applyStatus('all')">All</button>
-
             <button :class="['chip-button', { 'is-active': status === 'working' }]" @click="applyStatus('working')">Working</button>
-
             <button :class="['chip-button', { 'is-active': status === 'broken' }]" @click="applyStatus('broken')">Broken</button>
-
             <button :class="['chip-button', { 'is-active': status === 'blocked' }]" @click="applyStatus('blocked')">Blocked</button>
-
             <button :class="['chip-button', { 'is-active': status === 'unknown' }]" @click="applyStatus('unknown')">Unknown</button>
           </div>
         </div>
