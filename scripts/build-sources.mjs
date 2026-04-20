@@ -9,7 +9,7 @@ const rootDir = path.resolve(__dirname, '..')
 const outputPath = path.join(rootDir, 'public', 'data', 'sources.json')
 
 const config = {
-  owner: process.env.KOTATSU_OWNER ?? 'YakaTeam',
+  owner: process.env.KOTATSU_OWNER ?? 'AgentKush',
   repo: process.env.KOTATSU_REPO ?? 'kotatsu-parsers',
   branch: process.env.KOTATSU_BRANCH ?? 'master',
   githubToken: process.env.GITHUB_TOKEN ?? '',
@@ -26,7 +26,7 @@ const githubHeaders = {
 
 const httpHeaders = {
   'User-Agent':
-    'Mozilla/5.0 (compatible; KotatsuSourceWatch/1.0; +https://github.com/YakaTeam/kotatsu-parsers)',
+    'Mozilla/5.0 (compatible; KotatsuSourceWatch/1.0; +https://github.com/AgentKush/kotatsu-parsers)',
   Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
 }
 
