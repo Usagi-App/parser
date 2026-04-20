@@ -43,6 +43,8 @@ LANGUAGE_NAMES: dict[str, str] = {
     'ja': 'Japanese',
     'ko': 'Korean',
     'zh': 'Chinese',
+    'be': 'Belarusian',
+    'cs': 'Czech',
     'multi': 'Multiple',
 }
 
