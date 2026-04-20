@@ -5,8 +5,8 @@
   --bg-top: #171a20;
   --bg-bottom: #0d1014;
 
-  --surface: rgba(21, 24, 31, 0.98);
-  --surface-2: rgba(28, 32, 40, 0.99);
+  --surface: #15181f;
+  --surface-2: #1c2028;
 
   --border: rgba(255, 255, 255, 0.1);
 
@@ -24,6 +24,9 @@
   --warning-text: #ffe9b9;
 
   --danger: #ff95ab;
+  --danger-bg: rgba(255, 92, 126, 0.16);
+  --danger-border: rgba(255, 92, 126, 0.38);
+  --danger-text: #ffd7df;
 
   --shadow: 0 18px 52px rgba(0, 0, 0, 0.28);
   --radius-xl: 28px;
@@ -58,7 +61,7 @@ body {
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
   background: linear-gradient(180deg, var(--bg-top) 0%, var(--bg-bottom) 100%);
-  background-attachment: fixed;
+  background-attachment: scroll;
 }
 
 a {
@@ -144,7 +147,7 @@ code {
 .topbar--compact {
   top: 4px;
   padding: 10px 14px;
-  background: rgba(52, 55, 60, 0.96);
+  background: #34373c;
 }
 
 .topbar__brand {
@@ -320,6 +323,16 @@ code {
 .sidebar__warning p {
   margin: 0;
   color: var(--warning-text);
+}
+
+.hero__warning--danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+}
+
+.hero__warning--danger strong,
+.hero__warning--danger p {
+  color: var(--danger-text);
 }
 
 .hero__panel {
@@ -527,7 +540,6 @@ code {
   gap: 9px;
 }
 
-
 .sidebar__section--centered {
   align-items: center;
   text-align: center;
@@ -550,6 +562,7 @@ code {
   text-align: center;
   line-height: 1.2;
 }
+
 .chip-button,
 .sidebar-chip {
   min-height: 33px;
@@ -701,6 +714,11 @@ code {
 
 .sources--grid .source-card,
 .sources--list .source-card {
+  animation: none;
+}
+
+.sources--animating.sources--grid .source-card,
+.sources--animating.sources--list .source-card {
   animation: viewSwapIn 180ms ease;
 }
 
@@ -887,6 +905,17 @@ code {
   display: none;
 }
 
+.meta-link {
+  color: #7fb4ff;
+  text-decoration: underline;
+  text-underline-offset: 0.14em;
+  font-weight: 700;
+}
+
+.meta-link:hover {
+  opacity: 0.92;
+}
+
 @media (max-width: 1180px) {
   .hero {
     grid-template-columns: 1fr;
@@ -910,6 +939,18 @@ code {
 }
 
 @media (max-width: 820px) {
+  .shell {
+    width: min(100% - 16px, 100%);
+    padding-top: 10px;
+  }
+
+  #catalog,
+  #filters,
+  #distribution,
+  #safety {
+    scroll-margin-top: 74px;
+  }
+
   .topbar,
   .hero,
   .metric-card,
