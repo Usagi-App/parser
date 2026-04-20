@@ -432,8 +432,6 @@ onBeforeUnmount(() => {
             <button :class="['chip-button', { 'is-active': status === 'all' }]" @click="applyStatus('all')">All</button>
             <button :class="['chip-button', { 'is-active': status === 'working' }]" @click="applyStatus('working')">Working</button>
             <button :class="['chip-button', { 'is-active': status === 'broken' }]" @click="applyStatus('broken')">Broken</button>
-            <button :class="['chip-button', { 'is-active': status === 'blocked' }]" @click="applyStatus('blocked')">Blocked</button>
-            <button :class="['chip-button', { 'is-active': status === 'unknown' }]" @click="applyStatus('unknown')">Unknown</button>
           </div>
         </div>
 
