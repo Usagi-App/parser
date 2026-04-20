@@ -20,6 +20,7 @@ const nsfw = ref<'all' | 'safe' | 'nsfw'>('all')
 const sort = ref<'title' | 'language' | 'status' | 'domains'>('status')
 const view = ref<'grid' | 'list'>('grid')
 const isScrolled = ref(false)
+const isAnimatingView = ref(false)
 
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
@@ -50,6 +51,7 @@ const statusOrder: Record<SourceStatus, number> = {
 }
 
 let searchDebounce: number | undefined
+let viewAnimationTimer: number | undefined
 
 watch(rawQuery, (value) => {
   window.clearTimeout(searchDebounce)
@@ -60,6 +62,18 @@ watch(rawQuery, (value) => {
 
 function onScroll() {
   isScrolled.value = window.scrollY > 16
+}
+
+function setView(next: 'grid' | 'list') {
+  if (view.value === next) return
+
+  isAnimatingView.value = true
+  view.value = next
+
+  window.clearTimeout(viewAnimationTimer)
+  viewAnimationTimer = window.setTimeout(() => {
+    isAnimatingView.value = false
+  }, 260)
 }
 
 function withSearchText(source: SourceItem): SourceItem {
@@ -242,6 +256,7 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(searchDebounce)
+  window.clearTimeout(viewAnimationTimer)
   window.removeEventListener('scroll', onScroll)
 })
 </script>
@@ -518,11 +533,11 @@ onBeforeUnmount(() => {
 
           <div class="catalog-toolbar__controls">
             <div class="segmented">
-              <button :class="['segmented__item', { 'is-active': view === 'grid' }]" @click="view = 'grid'">
+              <button :class="['segmented__item', { 'is-active': view === 'grid' }]" @click="setView('grid')">
                 Grid
               </button>
 
-              <button :class="['segmented__item', { 'is-active': view === 'list' }]" @click="view = 'list'">
+              <button :class="['segmented__item', { 'is-active': view === 'list' }]" @click="setView('list')">
                 List
               </button>
             </div>
@@ -543,7 +558,14 @@ onBeforeUnmount(() => {
           <p>Reset the filters or regenerate the dataset from the upstream repository to repopulate the catalog.</p>
         </section>
 
-        <section v-else :class="['sources', `sources--${view}`]">
+        <section
+          v-else
+          :class="[
+            'sources',
+            `sources--${view}`,
+            { 'sources--animating': isAnimatingView }
+          ]"
+        >
           <SourceCard
             v-for="source in filteredSources"
             :key="source.id"
