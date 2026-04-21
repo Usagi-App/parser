@@ -14,7 +14,7 @@ const error = ref<string | null>(null)
 const rawQuery = ref('')
 const query = ref('')
 
-const status = ref<'all' | SourceStatus>('all')
+const status = ref<'all' | 'working' | 'blocked'>('all')
 const language = ref('all')
 const contentType = ref('all')
 const nsfw = ref<'all' | 'safe' | 'nsfw'>('all')
@@ -27,13 +27,30 @@ const perPageOptions = [25, 50, 100, 200]
 
 const drawerOpen = ref(false)
 const parallaxY = ref(0)
+const activeNav = ref('home')
 
 const navItems = [
-  { href: '#top', label: 'Home' },
-  { href: '#catalog', label: 'Catalog' },
-  { href: '#filters', label: 'Filters' },
-  { href: '#distribution', label: 'Overview' },
-  { href: '#safety', label: 'Notice' },
+  { id: 'home', label: 'Home' },
+  { id: 'catalog', label: 'Catalog' },
+  { id: 'filters', label: 'Filters' },
+  { id: 'distribution', label: 'Overview' },
+  { id: 'notices', label: 'Notice' },
+]
+
+/* Add more notice objects here later. */
+const notices = [
+  {
+    id: 'catalog-only',
+    title: 'Catalog only',
+    body:
+      'This website lists source metadata for reference and discovery. No reader application is provided here, and no source content is hosted, cached, or proxied by this website.',
+  },
+  {
+    id: 'third-party-sites',
+    title: 'Third-party websites',
+    body:
+      'Website buttons open external domains run by other parties. Availability, redirects, ads, and content are outside your control.',
+  },
 ]
 
 const skeletonMetricCount = [1, 2, 3, 4]
@@ -70,7 +87,7 @@ const statusOrder: Record<SourceStatus, number> = {
 }
 
 let searchDebounce: number | undefined
-let frameId: number | null = null
+let scrollFrame: number | undefined
 
 watch(rawQuery, (value) => {
   window.clearTimeout(searchDebounce)
@@ -87,38 +104,30 @@ watch(drawerOpen, (open) => {
   document.body.style.overflow = open ? 'hidden' : ''
 })
 
-function setView(next: 'grid' | 'list') {
-  view.value = next
-}
+function formatContentType(value?: string) {
+  const normalized = (value ?? 'MANGA').trim().toUpperCase()
 
-function openDrawer() {
-  drawerOpen.value = true
-}
-
-function closeDrawer() {
-  drawerOpen.value = false
-}
-
-function handleKeydown(event: KeyboardEvent) {
-  if (event.key === 'Escape') {
-    closeDrawer()
+  switch (normalized) {
+    case 'MANGA':
+      return 'Manga'
+    case 'MANHWA':
+      return 'Manhwa'
+    case 'MANHUA':
+      return 'Manhua'
+    case 'COMICS':
+      return 'Comics'
+    case 'NOVEL':
+      return 'Novel'
+    default:
+      return normalized.charAt(0) + normalized.slice(1).toLowerCase()
   }
 }
 
-function handleScroll() {
-  if (frameId !== null) return
-
-  frameId = window.requestAnimationFrame(() => {
-    parallaxY.value = Math.min(window.scrollY, 240)
-    frameId = null
-  })
-}
-
-function getLanguageLabel(source: SourceItem): string {
+function getLanguageLabel(source: SourceItem) {
   return source.languageName || LANGUAGE_NAMES[source.language] || source.language.toUpperCase()
 }
 
-function buildSearchText(source: SourceItem): string {
+function buildSearchText(source: SourceItem) {
   return [
     source.title,
     source.key,
@@ -159,48 +168,115 @@ function normalizeDataset(next: SourceDataset): SourceDataset {
   }
 }
 
-const parallaxStyle = computed(() => ({
-  transform: `translate3d(0, ${Math.round(parallaxY.value * 0.18)}px, 0)`,
-}))
+function setView(next: 'grid' | 'list') {
+  view.value = next
+}
 
-const languages = computed(() => {
-  const values = new Map<string, string>()
+function openDrawer() {
+  drawerOpen.value = true
+}
 
-  for (const source of dataset.value.sources) {
-    if (!source.language) continue
-    values.set(source.language, getLanguageLabel(source))
+function closeDrawer() {
+  drawerOpen.value = false
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    closeDrawer()
+  }
+}
+
+function updateActiveNav() {
+  const offset = 140
+  let current = 'home'
+
+  for (const item of navItems) {
+    if (item.id === 'home') continue
+    const element = document.getElementById(item.id)
+    if (element && window.scrollY + offset >= element.offsetTop) {
+      current = item.id
+    }
   }
 
-  return [
-    { value: 'all', label: 'All languages' },
-    ...Array.from(values.entries())
-      .sort((a, b) => a[1].localeCompare(b[1]))
-      .map(([value, label]) => ({ value, label })),
-  ]
+  activeNav.value = current
+}
+
+function handleScroll() {
+  if (scrollFrame) return
+
+  scrollFrame = window.requestAnimationFrame(() => {
+    parallaxY.value = Math.min(window.scrollY, 220)
+    updateActiveNav()
+    scrollFrame = undefined
+  })
+}
+
+function scrollToSection(id: string) {
+  closeDrawer()
+
+  if (id === 'home') {
+    window.scrollTo({ top: 0, behavior: 'smooth' })
+    return
+  }
+
+  const element = document.getElementById(id)
+  const topbar = document.querySelector('.topbar') as HTMLElement | null
+  const offset = (topbar?.offsetHeight ?? 0) + 22
+
+  if (!element) return
+
+  const y = element.getBoundingClientRect().top + window.scrollY - offset
+  window.scrollTo({
+    top: Math.max(y, 0),
+    behavior: 'smooth',
+  })
+}
+
+const parallaxStyle = computed(() => ({
+  transform: `translate3d(0, ${Math.round(parallaxY.value * 0.12)}px, 0)`,
+}))
+
+const languageOptions = computed(() => {
+  const counts = dataset.value.byLocale ?? {}
+  const seen = new Set(dataset.value.sources.map((source) => source.language))
+
+  const items = Array.from(seen).map((code) => ({
+    value: code,
+    count: counts[code] ?? dataset.value.sources.filter((source) => source.language === code).length,
+    label: `${LANGUAGE_NAMES[code] || code.toUpperCase()} (${formatNumber(
+      counts[code] ?? dataset.value.sources.filter((source) => source.language === code).length,
+    )})`,
+  }))
+
+  items.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+
+  return [{ value: 'all', label: 'All languages' }, ...items]
 })
 
-const contentTypes = computed(() => {
-  const values = new Set(dataset.value.sources.map((source) => source.contentType ?? 'MANGA'))
-  return ['all', ...Array.from(values).sort((a, b) => a.localeCompare(b))]
-})
+const contentTypeOptions = computed(() => {
+  const counts = dataset.value.byType ?? {}
+  const seen = new Set(dataset.value.sources.map((source) => source.contentType ?? 'MANGA'))
 
-const topLocales = computed(() => {
-  return Object.entries(dataset.value.byLocale ?? {})
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 8)
-})
+  const items = Array.from(seen).map((type) => ({
+    value: type,
+    count: counts[type] ?? dataset.value.sources.filter((source) => (source.contentType ?? 'MANGA') === type).length,
+    label: `${formatContentType(type)} (${formatNumber(
+      counts[type] ?? dataset.value.sources.filter((source) => (source.contentType ?? 'MANGA') === type).length,
+    )})`,
+  }))
 
-const topTypes = computed(() => {
-  return Object.entries(dataset.value.byType ?? {})
-    .sort((left, right) => right[1] - left[1])
-    .slice(0, 6)
+  items.sort((a, b) => b.count - a.count || a.label.localeCompare(b.label))
+
+  return [{ value: 'all', label: 'All content types' }, ...items]
 })
 
 const filteredSources = computed<SourceItem[]>(() => {
   const filtered = dataset.value.sources.filter((source) => {
-    const matchesStatus = status.value === 'all' || source.health.status === status.value
-    const matchesLanguage = language.value === 'all' || source.language === language.value
+    const sourceStatus = source.health.status
     const sourceType = source.contentType ?? 'MANGA'
+
+    const matchesStatus = status.value === 'all' || sourceStatus === status.value
+    const matchesLanguage = language.value === 'all' || source.language === language.value
     const matchesType = contentType.value === 'all' || sourceType === contentType.value
 
     const matchesNsfw =
@@ -256,7 +332,7 @@ const brokenShare = computed(() => {
   return Math.round((dataset.value.summary.broken / total) * 100)
 })
 
-function applyStatus(next: 'all' | SourceStatus) {
+function applyStatus(next: 'all' | 'working' | 'blocked') {
   status.value = next
 }
 
@@ -305,16 +381,20 @@ onBeforeUnmount(() => {
   window.clearTimeout(searchDebounce)
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('keydown', handleKeydown)
-  if (frameId !== null) {
-    window.cancelAnimationFrame(frameId)
+
+  if (scrollFrame) {
+    window.cancelAnimationFrame(scrollFrame)
   }
+
   document.body.style.overflow = ''
 })
 </script>
 
 <template>
   <div class="shell">
-    <header class="topbar" id="top">
+    <div id="home" class="page-anchor"></div>
+
+    <header class="topbar">
       <div class="topbar__brand">
         <span class="topbar__brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -332,7 +412,15 @@ onBeforeUnmount(() => {
       </div>
 
       <nav class="topbar__nav" aria-label="Primary">
-        <a v-for="item in navItems" :key="item.href" :href="item.href">{{ item.label }}</a>
+        <button
+          v-for="item in navItems"
+          :key="item.id"
+          type="button"
+          :class="['topbar__nav-button', { 'is-active': activeNav === item.id }]"
+          @click="scrollToSection(item.id)"
+        >
+          {{ item.label }}
+        </button>
       </nav>
 
       <div class="topbar__actions">
@@ -377,14 +465,15 @@ onBeforeUnmount(() => {
           </div>
 
           <nav class="drawer__nav">
-            <a
+            <button
               v-for="item in navItems"
-              :key="item.href"
-              :href="item.href"
-              @click="closeDrawer"
+              :key="item.id"
+              type="button"
+              :class="['drawer__nav-button', { 'is-active': activeNav === item.id }]"
+              @click="scrollToSection(item.id)"
             >
               {{ item.label }}
-            </a>
+            </button>
           </nav>
 
           <a
@@ -402,7 +491,7 @@ onBeforeUnmount(() => {
     <section class="hero card">
       <div class="hero__copy">
         <p class="hero__eyebrow">Vue / Vite catalog</p>
-        <h1 class="hero__title">Clean parser directory with fast search and lighter rendering</h1>
+        <h1 class="hero__title">Clean parser directory with faster search and lighter rendering</h1>
 
         <p class="hero__text">
           Browse parser entries, domains, languages, and health state without reader logic,
@@ -410,33 +499,29 @@ onBeforeUnmount(() => {
         </p>
 
         <div class="hero__actions">
-          <a class="button button--primary" href="#catalog">Browse catalog</a>
-          <a class="button button--ghost" href="#filters">Open filters</a>
-        </div>
+          <button class="button button--primary" type="button" @click="scrollToSection('catalog')">
+            Browse catalog
+          </button>
 
-        <div class="hero__warning hero__warning--danger" id="safety">
-          <strong>Catalog only</strong>
-          <p>
-            This website lists source metadata for reference and discovery.
-            No reader application is provided here, and no source content is hosted,
-            cached, or proxied by this website.
-          </p>
+          <button class="button button--ghost" type="button" @click="scrollToSection('filters')">
+            Open filters
+          </button>
         </div>
       </div>
 
       <aside class="hero__art">
         <div class="hero__art-layer" :style="parallaxStyle">
-          <div class="hero__glass hero__glass--main">
+          <div class="hero__glass">
             <span class="hero__glass-label">Generated</span>
             <strong>{{ formatDate(dataset.generatedAt) }}</strong>
           </div>
 
-          <div class="hero__glass hero__glass--accent">
+          <div class="hero__glass">
             <span class="hero__glass-label">Healthy share</span>
             <strong>{{ qualityScore }}%</strong>
           </div>
 
-          <div class="hero__glass hero__glass--soft">
+          <div class="hero__glass">
             <span class="hero__glass-label">Broken share</span>
             <strong>{{ brokenShare }}%</strong>
           </div>
@@ -468,6 +553,24 @@ onBeforeUnmount(() => {
           </li>
         </ul>
       </aside>
+    </section>
+
+    <section class="notices card" id="notices">
+      <div class="section-head">
+        <p class="catalog-toolbar__eyebrow">Notice</p>
+        <h2>Things you should know</h2>
+      </div>
+
+      <div class="notices__grid">
+        <article
+          v-for="notice in notices"
+          :key="notice.id"
+          class="notice-card notice-card--warning"
+        >
+          <strong>{{ notice.title }}</strong>
+          <p>{{ notice.body }}</p>
+        </article>
+      </div>
     </section>
 
     <section class="metrics-grid" id="distribution">
@@ -536,9 +639,7 @@ onBeforeUnmount(() => {
           <div class="sidebar__chips">
             <button :class="['chip-button', { 'is-active': status === 'all' }]" @click="applyStatus('all')">All</button>
             <button :class="['chip-button', { 'is-active': status === 'working' }]" @click="applyStatus('working')">Working</button>
-            <button :class="['chip-button', { 'is-active': status === 'broken' }]" @click="applyStatus('broken')">Broken</button>
             <button :class="['chip-button', { 'is-active': status === 'blocked' }]" @click="applyStatus('blocked')">Blocked</button>
-            <button :class="['chip-button', { 'is-active': status === 'unknown' }]" @click="applyStatus('unknown')">Unknown</button>
           </div>
         </div>
 
@@ -546,7 +647,7 @@ onBeforeUnmount(() => {
           <label class="field">
             <span>Language</span>
             <select v-model="language">
-              <option v-for="option in languages" :key="option.value" :value="option.value">
+              <option v-for="option in languageOptions" :key="option.value" :value="option.value">
                 {{ option.label }}
               </option>
             </select>
@@ -555,8 +656,8 @@ onBeforeUnmount(() => {
           <label class="field">
             <span>Content type</span>
             <select v-model="contentType">
-              <option v-for="option in contentTypes" :key="option" :value="option">
-                {{ option === 'all' ? 'All content types' : option }}
+              <option v-for="option in contentTypeOptions" :key="option.value" :value="option.value">
+                {{ option.label }}
               </option>
             </select>
           </label>
@@ -579,24 +680,6 @@ onBeforeUnmount(() => {
               <option value="domains">Domain count</option>
             </select>
           </label>
-        </div>
-
-        <div class="sidebar__section sidebar__section--centered">
-          <div class="sidebar__label">Top locales</div>
-          <div class="sidebar__chips">
-            <span v-for="[code, count] in topLocales" :key="code" class="sidebar-chip">
-              {{ code.toUpperCase() }} · {{ formatNumber(count) }}
-            </span>
-          </div>
-        </div>
-
-        <div class="sidebar__section sidebar__section--centered">
-          <div class="sidebar__label">Top content types</div>
-          <div class="sidebar__chips">
-            <span v-for="[type, count] in topTypes" :key="type" class="sidebar-chip">
-              {{ type }} · {{ formatNumber(count) }}
-            </span>
-          </div>
         </div>
 
         <div class="sidebar__section sidebar__warning">
