@@ -25,6 +25,20 @@ const page = ref(1)
 const perPage = ref(50)
 const perPageOptions = [25, 50, 100, 200]
 
+const drawerOpen = ref(false)
+const parallaxY = ref(0)
+
+const navItems = [
+  { href: '#top', label: 'Home' },
+  { href: '#catalog', label: 'Catalog' },
+  { href: '#filters', label: 'Filters' },
+  { href: '#distribution', label: 'Overview' },
+  { href: '#safety', label: 'Notice' },
+]
+
+const skeletonMetricCount = [1, 2, 3, 4]
+const skeletonCardCount = [1, 2, 3, 4, 5, 6]
+
 const LANGUAGE_NAMES: Record<string, string> = {
   en: 'English',
   de: 'German',
@@ -56,6 +70,49 @@ const statusOrder: Record<SourceStatus, number> = {
 }
 
 let searchDebounce: number | undefined
+let frameId: number | null = null
+
+watch(rawQuery, (value) => {
+  window.clearTimeout(searchDebounce)
+  searchDebounce = window.setTimeout(() => {
+    query.value = value.trim().toLowerCase()
+  }, 120)
+})
+
+watch([query, status, language, contentType, nsfw, sort, perPage], () => {
+  page.value = 1
+})
+
+watch(drawerOpen, (open) => {
+  document.body.style.overflow = open ? 'hidden' : ''
+})
+
+function setView(next: 'grid' | 'list') {
+  view.value = next
+}
+
+function openDrawer() {
+  drawerOpen.value = true
+}
+
+function closeDrawer() {
+  drawerOpen.value = false
+}
+
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    closeDrawer()
+  }
+}
+
+function handleScroll() {
+  if (frameId !== null) return
+
+  frameId = window.requestAnimationFrame(() => {
+    parallaxY.value = Math.min(window.scrollY, 240)
+    frameId = null
+  })
+}
 
 function getLanguageLabel(source: SourceItem): string {
   return source.languageName || LANGUAGE_NAMES[source.language] || source.language.toUpperCase()
@@ -77,6 +134,14 @@ function buildSearchText(source: SourceItem): string {
     .toLowerCase()
 }
 
+function withSearchText(source: SourceItem): SourceItem {
+  return {
+    ...source,
+    languageName: getLanguageLabel(source),
+    searchText: source.searchText || buildSearchText(source),
+  }
+}
+
 function normalizeDataset(next: SourceDataset): SourceDataset {
   return {
     ...next,
@@ -90,23 +155,13 @@ function normalizeDataset(next: SourceDataset): SourceDataset {
         next.summary.nsfw ??
         next.sources.reduce((count, source) => count + (source.nsfw ? 1 : 0), 0),
     },
+    sources: next.sources.map(withSearchText),
   }
 }
 
-watch(rawQuery, (value) => {
-  window.clearTimeout(searchDebounce)
-  searchDebounce = window.setTimeout(() => {
-    query.value = value.trim().toLowerCase()
-  }, 120)
-})
-
-watch([query, status, language, contentType, nsfw, sort, perPage], () => {
-  page.value = 1
-})
-
-function setView(next: 'grid' | 'list') {
-  view.value = next
-}
+const parallaxStyle = computed(() => ({
+  transform: `translate3d(0, ${Math.round(parallaxY.value * 0.18)}px, 0)`,
+}))
 
 const languages = computed(() => {
   const values = new Map<string, string>()
@@ -153,7 +208,7 @@ const filteredSources = computed<SourceItem[]>(() => {
       (nsfw.value === 'nsfw' && !!source.nsfw) ||
       (nsfw.value === 'safe' && !source.nsfw)
 
-    const matchesQuery = !query.value || buildSearchText(source).includes(query.value)
+    const matchesQuery = !query.value || (source.searchText?.includes(query.value) ?? false)
 
     return matchesStatus && matchesLanguage && matchesType && matchesNsfw && matchesQuery
   })
@@ -213,6 +268,7 @@ function resetFilters() {
   contentType.value = 'all'
   nsfw.value = 'all'
   sort.value = 'status'
+  view.value = 'grid'
   page.value = 1
   perPage.value = 50
 }
@@ -222,6 +278,10 @@ function goToPage(next: number) {
 }
 
 onMounted(async () => {
+  window.addEventListener('scroll', handleScroll, { passive: true })
+  window.addEventListener('keydown', handleKeydown)
+  handleScroll()
+
   try {
     const response = await fetch(`${import.meta.env.BASE_URL}data/sources.json`, {
       cache: 'force-cache',
@@ -243,35 +303,36 @@ onMounted(async () => {
 
 onBeforeUnmount(() => {
   window.clearTimeout(searchDebounce)
+  window.removeEventListener('scroll', handleScroll)
+  window.removeEventListener('keydown', handleKeydown)
+  if (frameId !== null) {
+    window.cancelAnimationFrame(frameId)
+  }
+  document.body.style.overflow = ''
 })
 </script>
 
 <template>
   <div class="shell">
-    <div class="shell__noise"></div>
-
     <header class="topbar" id="top">
       <div class="topbar__brand">
-        <img
-          class="topbar__logo-image"
-          src="https://cdn.jsdelivr.net/gh/jdecked/twemoji@15.1.0/assets/svg/1f4da.svg"
-          alt="Books emoji"
-          width="42"
-          height="42"
-          decoding="async"
-        />
+        <span class="topbar__brand-mark" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 6.5C4 5.4 4.9 4.5 6 4.5H18C19.1 4.5 20 5.4 20 6.5V17.5C20 18.6 19.1 19.5 18 19.5H6C4.9 19.5 4 18.6 4 17.5V6.5Z" />
+            <path d="M8 4.5V19.5" />
+            <path d="M11 8.5H16" />
+            <path d="M11 12H16" />
+          </svg>
+        </span>
 
         <div>
           <p class="topbar__eyebrow">Parser source catalog</p>
-          <strong>Catalog browser</strong>
+          <strong>Directory only</strong>
         </div>
       </div>
 
-      <nav class="topbar__nav">
-        <a href="#catalog">📚 <span class="nav-label">Catalog</span></a>
-        <a href="#filters">🔎 <span class="nav-label">Filters</span></a>
-        <a href="#distribution">📊 <span class="nav-label">Overview</span></a>
-        <a href="#safety">⚠️ <span class="nav-label">Notice</span></a>
+      <nav class="topbar__nav" aria-label="Primary">
+        <a v-for="item in navItems" :key="item.href" :href="item.href">{{ item.label }}</a>
       </nav>
 
       <div class="topbar__actions">
@@ -281,35 +342,79 @@ onBeforeUnmount(() => {
           target="_blank"
           rel="noreferrer noopener"
         >
-          🧩 <span class="nav-label">Repo</span>
+          Repo
         </a>
+
+        <button
+          class="icon-button topbar__menu"
+          type="button"
+          aria-label="Open navigation drawer"
+          @click="openDrawer"
+        >
+          <svg viewBox="0 0 24 24" fill="none">
+            <path d="M4 7H20" />
+            <path d="M4 12H20" />
+            <path d="M4 17H14" />
+          </svg>
+        </button>
       </div>
     </header>
 
+    <transition name="fade">
+      <div v-if="drawerOpen" class="drawer">
+        <button class="drawer__overlay" type="button" aria-label="Close drawer" @click="closeDrawer"></button>
+
+        <aside class="drawer__panel">
+          <div class="drawer__head">
+            <strong>Navigate</strong>
+
+            <button class="icon-button" type="button" aria-label="Close drawer" @click="closeDrawer">
+              <svg viewBox="0 0 24 24" fill="none">
+                <path d="M6 6L18 18" />
+                <path d="M18 6L6 18" />
+              </svg>
+            </button>
+          </div>
+
+          <nav class="drawer__nav">
+            <a
+              v-for="item in navItems"
+              :key="item.href"
+              :href="item.href"
+              @click="closeDrawer"
+            >
+              {{ item.label }}
+            </a>
+          </nav>
+
+          <a
+            class="button button--ghost button--block"
+            href="https://github.com/Usagi-App/Parser"
+            target="_blank"
+            rel="noreferrer noopener"
+          >
+            Open repository
+          </a>
+        </aside>
+      </div>
+    </transition>
+
     <section class="hero card">
       <div class="hero__copy">
-        <p class="hero__eyebrow">Parser / Source Catalog</p>
-        <h1 class="hero__title">Browse source entries in a clean catalog</h1>
+        <p class="hero__eyebrow">Vue / Vite catalog</p>
+        <h1 class="hero__title">Clean parser directory with fast search and lighter rendering</h1>
 
         <p class="hero__text">
-          This website serves only as an informational catalog of parser sources,
-          extracted metadata, and availability indicators.
+          Browse parser entries, domains, languages, and health state without reader logic,
+          proxying, or hosted source content.
         </p>
 
         <div class="hero__actions">
-          <a class="button button--primary" href="#catalog">Browse sources</a>
+          <a class="button button--primary" href="#catalog">Browse catalog</a>
           <a class="button button--ghost" href="#filters">Open filters</a>
         </div>
 
-        <div class="hero__warning" id="safety">
-          <strong>Third-party website warning</strong>
-          <p>
-            Website buttons open external domains run by other parties. Availability, ads,
-            redirects, and content are outside your control.
-          </p>
-        </div>
-
-        <div class="hero__warning hero__warning--danger">
+        <div class="hero__warning hero__warning--danger" id="safety">
           <strong>Catalog only</strong>
           <p>
             This website lists source metadata for reference and discovery.
@@ -319,26 +424,28 @@ onBeforeUnmount(() => {
         </div>
       </div>
 
-      <aside class="hero__panel hero__panel--centered">
-        <ul class="hero__facts">
-          <li>
-            <span>Generated</span>
+      <aside class="hero__art">
+        <div class="hero__art-layer" :style="parallaxStyle">
+          <div class="hero__glass hero__glass--main">
+            <span class="hero__glass-label">Generated</span>
             <strong>{{ formatDate(dataset.generatedAt) }}</strong>
-          </li>
+          </div>
 
+          <div class="hero__glass hero__glass--accent">
+            <span class="hero__glass-label">Healthy share</span>
+            <strong>{{ qualityScore }}%</strong>
+          </div>
+
+          <div class="hero__glass hero__glass--soft">
+            <span class="hero__glass-label">Broken share</span>
+            <strong>{{ brokenShare }}%</strong>
+          </div>
+        </div>
+
+        <ul class="hero__facts">
           <li>
             <span>Upstream</span>
             <strong>{{ dataset.sourceRepo.owner }}/{{ dataset.sourceRepo.repo }}</strong>
-          </li>
-
-          <li>
-            <span>Healthy share</span>
-            <strong>{{ qualityScore }}%</strong>
-          </li>
-
-          <li>
-            <span>Broken share</span>
-            <strong>{{ brokenShare }}%</strong>
           </li>
 
           <li>
@@ -353,6 +460,11 @@ onBeforeUnmount(() => {
               scripts/build_catalog
             </a>
             <strong v-else>{{ dataset.generatedBy ?? 'Static bundle' }}</strong>
+          </li>
+
+          <li>
+            <span>Entries</span>
+            <strong>{{ formatNumber(dataset.summary.total || dataset.sources.length) }}</strong>
           </li>
         </ul>
       </aside>
@@ -400,8 +512,8 @@ onBeforeUnmount(() => {
       <aside class="sidebar card" id="filters">
         <div class="sidebar__section">
           <div class="sidebar__section-head">
-            <p class="sidebar__eyebrow">Controls</p>
-            <h2>Find the source fast</h2>
+            <p class="sidebar__eyebrow">Filters</p>
+            <h2>Find a source fast</h2>
           </div>
 
           <label class="field field--search">
@@ -425,6 +537,8 @@ onBeforeUnmount(() => {
             <button :class="['chip-button', { 'is-active': status === 'all' }]" @click="applyStatus('all')">All</button>
             <button :class="['chip-button', { 'is-active': status === 'working' }]" @click="applyStatus('working')">Working</button>
             <button :class="['chip-button', { 'is-active': status === 'broken' }]" @click="applyStatus('broken')">Broken</button>
+            <button :class="['chip-button', { 'is-active': status === 'blocked' }]" @click="applyStatus('blocked')">Blocked</button>
+            <button :class="['chip-button', { 'is-active': status === 'unknown' }]" @click="applyStatus('unknown')">Unknown</button>
           </div>
         </div>
 
@@ -460,15 +574,33 @@ onBeforeUnmount(() => {
             <span>Sort</span>
             <select v-model="sort">
               <option value="status">Status</option>
-              <option value="title">Title</option>
+              <option value="title">Title A–Z</option>
               <option value="language">Language</option>
               <option value="domains">Domain count</option>
             </select>
           </label>
         </div>
 
+        <div class="sidebar__section sidebar__section--centered">
+          <div class="sidebar__label">Top locales</div>
+          <div class="sidebar__chips">
+            <span v-for="[code, count] in topLocales" :key="code" class="sidebar-chip">
+              {{ code.toUpperCase() }} · {{ formatNumber(count) }}
+            </span>
+          </div>
+        </div>
+
+        <div class="sidebar__section sidebar__section--centered">
+          <div class="sidebar__label">Top content types</div>
+          <div class="sidebar__chips">
+            <span v-for="[type, count] in topTypes" :key="type" class="sidebar-chip">
+              {{ type }} · {{ formatNumber(count) }}
+            </span>
+          </div>
+        </div>
+
         <div class="sidebar__section sidebar__warning">
-          <strong>External link warning</strong>
+          <strong>Third-party websites</strong>
           <p>Opening a website button leaves this catalog and visits a third-party domain.</p>
         </div>
 
@@ -539,14 +671,35 @@ onBeforeUnmount(() => {
           </div>
         </section>
 
-        <section v-if="loading" class="loading card">
-          <div class="loading__pulse"></div>
-          <p>Loading catalog…</p>
+        <section v-if="loading" class="loading-shell">
+          <div class="metrics-grid">
+            <article v-for="item in skeletonMetricCount" :key="item" class="metric-card card skeleton-block"></article>
+          </div>
+
+          <div class="catalog-toolbar card skeleton-toolbar"></div>
+
+          <div class="sources sources--grid">
+            <article v-for="item in skeletonCardCount" :key="item" class="source-card skeleton-card">
+              <div class="skeleton-line skeleton-line--lg"></div>
+              <div class="skeleton-line skeleton-line--md"></div>
+              <div class="skeleton-chips">
+                <span class="skeleton-pill"></span>
+                <span class="skeleton-pill"></span>
+                <span class="skeleton-pill"></span>
+              </div>
+              <div class="skeleton-line"></div>
+              <div class="skeleton-line skeleton-line--sm"></div>
+              <div class="skeleton-actions">
+                <span class="skeleton-pill skeleton-pill--btn"></span>
+                <span class="skeleton-pill skeleton-pill--btn"></span>
+              </div>
+            </article>
+          </div>
         </section>
 
         <section v-else-if="paginatedSources.length === 0" class="empty-state card">
           <h2>No sources matched your filters.</h2>
-          <p>Reset the filters or regenerate the dataset from the upstream repository to repopulate the catalog.</p>
+          <p>Reset the filters or broaden the search to repopulate the catalog.</p>
         </section>
 
         <section
