@@ -1,0 +1,70 @@
+name: Build catalog manually
+
+on:
+  workflow_dispatch:
+    inputs:
+      owner:
+        description: 'Parser repo owner'
+        required: true
+        default: 'YakaTeam'
+        type: string
+      repo:
+        description: 'Parser repo name'
+        required: true
+        default: 'kotatsu-parsers'
+        type: string
+      branch:
+        description: 'Parser repo branch'
+        required: true
+        default: 'master'
+        type: string
+      output:
+        description: 'Output path inside this repo'
+        required: true
+        default: 'public/data/sources.json'
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  build-catalog:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out website repository
+        uses: actions/checkout@v4
+
+      - name: Check out parser source repository
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ inputs.owner }}/${{ inputs.repo }}
+          ref: ${{ inputs.branch }}
+          path: .cache/kotatsu-parsers
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Generate catalog JSON
+        run: >
+          python3 scripts/build_catalog.py
+          --repo-dir .cache/kotatsu-parsers
+          --output ${{ inputs.output }}
+          --owner ${{ inputs.owner }}
+          --repo ${{ inputs.repo }}
+          --branch ${{ inputs.branch }}
+
+      - name: Show generated file info
+        run: |
+          ls -lh ${{ inputs.output }}
+          echo ""
+          echo "First 40 lines:"
+          head -n 40 ${{ inputs.output }}
+
+      - name: Upload generated catalog artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: generated-catalog
+          path: ${{ inputs.output }}
