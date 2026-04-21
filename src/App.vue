@@ -31,6 +31,7 @@ const parallaxY = ref(0)
 const activeNav = ref('home')
 const isScrolled = ref(false)
 const showBackToTop = ref(false)
+const isTopbarDocked = ref(false)
 const layoutNavPreference = ref<'filters' | 'catalog'>('catalog')
 
 const VIEW_PREFS_KEY = 'usagi.viewPrefs'
@@ -204,6 +205,7 @@ function closeDrawer() {
 }
 
 function toggleThemePanel() {
+  if (window.innerWidth <= 920) return
   themePanelOpen.value = !themePanelOpen.value
   if (themePanelOpen.value) closeDrawer()
 }
@@ -217,6 +219,15 @@ function handleKeydown(event: KeyboardEvent) {
     closeDrawer()
     themePanelOpen.value = false
   }
+}
+
+function handleResize() {
+  if (window.innerWidth <= 920) {
+    themePanelOpen.value = false
+  } else {
+    drawerOpen.value = false
+  }
+  handleScroll()
 }
 
 function updateActiveNav() {
@@ -262,9 +273,15 @@ function handleScroll() {
 
   scrollFrame = window.requestAnimationFrame(() => {
     const y = window.scrollY
+    const topbar = document.querySelector('.topbar') as HTMLElement | null
+    const layout = document.querySelector('.layout') as HTMLElement | null
+    const topbarHeight = topbar?.offsetHeight ?? 0
+    const dockPoint = layout ? Math.max(layout.offsetTop - topbarHeight - 18, 0) : Number.POSITIVE_INFINITY
+
     parallaxY.value = Math.min(y, 180)
     isScrolled.value = y > 10
     showBackToTop.value = y > 420
+    isTopbarDocked.value = y >= dockPoint
     updateActiveNav()
     scrollFrame = undefined
   })
@@ -573,6 +590,7 @@ onMounted(async () => {
 
   window.addEventListener('scroll', handleScroll, { passive: true })
   window.addEventListener('keydown', handleKeydown)
+  window.addEventListener('resize', handleResize)
   handleScroll()
 
   try {
@@ -599,6 +617,7 @@ onBeforeUnmount(() => {
   window.clearTimeout(searchDebounce)
   window.removeEventListener('scroll', handleScroll)
   window.removeEventListener('keydown', handleKeydown)
+  window.removeEventListener('resize', handleResize)
 
   if (scrollFrame) {
     window.cancelAnimationFrame(scrollFrame)
@@ -613,7 +632,7 @@ onBeforeUnmount(() => {
     <a class="skip-link" href="#catalog">Skip to catalog</a>
     <div id="home" class="page-anchor"></div>
 
-    <header :class="['topbar', { 'topbar--scrolled': isScrolled }]">
+    <header :class="['topbar', { 'topbar--scrolled': isScrolled, 'topbar--docked': isTopbarDocked }]">
       <div class="topbar__brand">
         <span class="topbar__brand-mark" aria-hidden="true">
           <svg viewBox="0 0 24 24" fill="none">
@@ -746,8 +765,8 @@ onBeforeUnmount(() => {
 
     <section class="overview-card card" id="distribution">
       <div class="overview-card__copy">
-        <p class="hero__eyebrow">Catalog</p>
-        <h1 class="overview-card__title">Easy search browser</h1>
+        <p class="hero__eyebrow">Vue / Vite catalog</p>
+        <h1 class="overview-card__title">Clean parser directory with faster search and lighter rendering</h1>
 
         <p class="overview-card__text">
           Browse parser entries, domains, languages, and health state without reader logic,
