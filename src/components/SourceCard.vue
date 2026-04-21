@@ -95,6 +95,7 @@ const brokenReason = computed(() => {
           target="_blank"
           rel="noreferrer noopener"
         >
+          <svg class="button__icon" viewBox="0 0 24 24" fill="none"><path d="M4 12C4 7.6 7.6 4 12 4C16.4 4 20 7.6 20 12C20 16.4 16.4 20 12 20C7.6 20 4 16.4 4 12Z" /><path d="M4.8 9H19.2" /><path d="M4.8 15H19.2" /></svg>
           Website
         </a>
 
@@ -104,6 +105,7 @@ const brokenReason = computed(() => {
           target="_blank"
           rel="noreferrer noopener"
         >
+          <svg class="button__icon" viewBox="0 0 24 24" fill="none"><path d="M9 18L15 12L9 6" /></svg>
           File
         </a>
 
@@ -114,6 +116,7 @@ const brokenReason = computed(() => {
           target="_blank"
           rel="noreferrer noopener"
         >
+          <svg class="button__icon" viewBox="0 0 24 24" fill="none"><path d="M8 6L5 12L8 18" /><path d="M16 6L19 12L16 18" /><path d="M13 4L11 20" /></svg>
           Raw
         </a>
       </div>
