@@ -1,12 +1,5 @@
 <script setup lang="ts">
-import {
-  computed,
-  nextTick,
-  onBeforeUnmount,
-  onMounted,
-  ref,
-  watch,
-} from "vue";
+import { computed, onBeforeUnmount, onMounted, ref, watch } from "vue";
 import SourceCard from "@/components/SourceCard.vue";
 
 import {
@@ -22,7 +15,6 @@ const shellEl = ref<HTMLElement | null>(null);
 const topbarEl = ref<HTMLElement | null>(null);
 const topbarSlotEl = ref<HTMLElement | null>(null);
 const layoutEl = ref<HTMLElement | null>(null);
-const bottomPagerEl = ref<HTMLElement | null>(null);
 
 const dataset = ref<SourceDataset>(sampleData);
 const loading = ref(true);
@@ -450,13 +442,13 @@ function hydrateFromUrl() {
   }
 }
 
-function commitPageInput(mode: "default" | "stick-bottom" = "default") {
+function commitPageInput() {
   const next = Number(pageInput.value);
   if (!Number.isFinite(next) || next < 1) {
     pageInput.value = String(page.value);
     return;
   }
-  void goToPage(next, mode);
+  void goToPage(next);
 }
 
 function animateOverviewBars() {
@@ -690,32 +682,8 @@ function resetFilters() {
   perPage.value = 50;
 }
 
-async function goToPage(
-  next: number,
-  mode: "default" | "stick-bottom" = "default",
-) {
-  const targetPage = Math.min(Math.max(1, next), totalPages.value);
-
-  if (targetPage === page.value) {
-    if (mode === "stick-bottom") {
-      await nextTick();
-      bottomPagerEl.value?.scrollIntoView({
-        block: "end",
-        behavior: "smooth",
-      });
-    }
-    return;
-  }
-
-  page.value = targetPage;
-
-  if (mode === "stick-bottom") {
-    await nextTick();
-    bottomPagerEl.value?.scrollIntoView({
-      block: "end",
-      behavior: "smooth",
-    });
-  }
+async function goToPage(next: number) {
+  page.value = Math.min(Math.max(1, next), totalPages.value);
 }
 
 onMounted(async () => {
@@ -1002,8 +970,7 @@ onBeforeUnmount(() => {
                 :key="option.value"
                 type="button"
                 :class="[
-                  'chip-button',
-                  'drawer__theme-chip',
+                  'theme-switcher__option',
                   { 'is-active': theme === option.value },
                 ]"
                 @click="setTheme(option.value)"
@@ -1421,14 +1388,13 @@ onBeforeUnmount(() => {
 
         <section
           v-if="!loading && paginatedSources.length > 0"
-          ref="bottomPagerEl"
           class="pagination pagination--android pagination--bottom card"
         >
           <button
             class="button button--ghost button--small"
             :disabled="!canGoPrev"
             aria-label="Previous page"
-            @click="goToPage(page - 1, 'stick-bottom')"
+            @click="goToPage(page - 1)"
           >
             Prev
           </button>
@@ -1442,8 +1408,8 @@ onBeforeUnmount(() => {
               min="1"
               :max="totalPages"
               inputmode="numeric"
-              @change="commitPageInput('stick-bottom')"
-              @keyup.enter="commitPageInput('stick-bottom')"
+              @change="commitPageInput()"
+              @keyup.enter="commitPageInput()"
             />
             <span class="pagination__status"
               >/ {{ formatNumber(totalPages) }}</span
@@ -1454,7 +1420,7 @@ onBeforeUnmount(() => {
             class="button button--ghost button--small"
             :disabled="!canGoNext"
             aria-label="Next page"
-            @click="goToPage(page + 1, 'stick-bottom')"
+            @click="goToPage(page + 1)"
           >
             Next
           </button>

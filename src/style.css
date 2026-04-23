@@ -975,13 +975,6 @@ polyline {
   color: var(--warning-text);
 }
 
-.catalog {
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
 .catalog-toolbar {
   display: flex;
   flex-direction: column;
@@ -1074,7 +1067,17 @@ polyline {
 
 .pagination--bottom {
   margin-inline: auto;
+  margin-top: 4px;
   padding: 14px 16px;
+  border-color: var(--border-strong);
+  background: var(--surface);
+}
+
+.catalog {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 
 .pagination__center {
@@ -1519,16 +1522,6 @@ polyline {
   gap: 10px;
 }
 
-.drawer__theme-chip {
-  gap: 8px;
-}
-
-.drawer__theme-chip .theme-switcher__swatch {
-  width: 12px;
-  height: 12px;
-  flex: 0 0 12px;
-}
-
 .sidebar__reset-button {
   gap: 8px;
 }
@@ -1541,17 +1534,20 @@ polyline {
   transform: translateY(1px);
 }
 
+.drawer__theme-list .theme-switcher__option {
+  width: 100%;
+  justify-content: flex-start;
+}
+
 .sidebar .button:hover,
 .sidebar .chip-button:hover,
-.sidebar .theme-switcher__option:hover,
-.sidebar .drawer__theme-chip:hover {
+.sidebar .theme-switcher__option:hover {
   transform: none;
 }
 
 .sidebar .button:active,
 .sidebar .chip-button:active,
-.sidebar .theme-switcher__option:active,
-.sidebar .drawer__theme-chip:active {
+.sidebar .theme-switcher__option:active {
   transform: scale(0.985);
 }
 
@@ -1724,6 +1720,12 @@ polyline {
 
   .catalog-toolbar__per-page {
     margin-left: 0;
+  }
+
+  .pagination--bottom {
+    width: fit-content;
+    max-width: 100%;
+    bottom: auto;
   }
 
   .pagination--android {
