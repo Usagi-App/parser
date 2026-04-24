@@ -5,10 +5,18 @@ on:
     branches: [main]
   workflow_dispatch:
   schedule:
-    - cron: '13 2 * * *'
+    - cron: "13 2 * * *"
 
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PARSER_RUNTIME_ENABLED: "1"
+  PARSER_RUNTIME_GRADLE: "gradle"
+  PARSER_RUNTIME_DIR: "tools/parser-checker"
+  PARSER_CHECKER_WORKERS: "4"
+  PARSER_CHECKER_TIMEOUT_MS: "75000"
+  PARSER_CHECKER_RATE_DELAY_MS: "450"
+  PARSER_CHECKER_RETRIES: "2"
+  PARSER_CHECKER_BACKOFF_MS: "800"
 
 permissions:
   contents: write
@@ -22,6 +30,7 @@ concurrency:
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 360
 
     steps:
       - name: Check out website repository
@@ -37,7 +46,19 @@ jobs:
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          python-version: "3.12"
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "17"
+          cache: gradle
+
+      - name: Set up Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "9.4.1"
 
       - name: Set up Node
         uses: actions/setup-node@v6
@@ -47,6 +68,10 @@ jobs:
 
       - name: Install dependencies
         run: npm install --no-fund --no-audit
+
+      - name: Build Parser runtime checker
+        working-directory: tools/parser-checker
+        run: gradle build --console=plain
 
       - name: Generate parser catalog dataset
         run: >
