@@ -7,30 +7,33 @@ on:
   schedule:
     - cron: "13 2 * * *"
 
+concurrency:
+  group: pages-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
   PARSER_RUNTIME_ENABLED: "1"
   PARSER_RUNTIME_GRADLE: "gradle"
   PARSER_RUNTIME_DIR: "tools/parser-checker"
-  PARSER_CHECKER_WORKERS: "4"
-  PARSER_CHECKER_TIMEOUT_MS: "75000"
-  PARSER_CHECKER_RATE_DELAY_MS: "450"
-  PARSER_CHECKER_RETRIES: "2"
-  PARSER_CHECKER_BACKOFF_MS: "800"
+
+  # Faster CI settings
+  PARSER_CHECKER_WORKERS: "16"
+  PARSER_CHECKER_TIMEOUT_MS: "20000"
+  PARSER_CHECKER_RATE_DELAY_MS: "120"
+  PARSER_CHECKER_RETRIES: "0"
+  PARSER_CHECKER_BACKOFF_MS: "300"
 
 permissions:
   contents: write
   pages: write
   id-token: write
 
-concurrency:
-  group: pages
-  cancel-in-progress: true
-
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 360
+    timeout-minutes: 90
 
     steps:
       - name: Check out website repository
@@ -61,10 +64,10 @@ jobs:
           gradle-version: "9.4.1"
 
       - name: Set up Node
-        uses: actions/setup-node@v6
+        uses: actions/setup-node@v4
         with:
           node-version: 24
-          package-manager-cache: false
+          cache: npm
 
       - name: Install dependencies
         run: npm install --no-fund --no-audit
