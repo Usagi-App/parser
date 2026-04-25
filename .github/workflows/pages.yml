@@ -52,7 +52,7 @@ jobs:
         run: python3 -m pip install -r requirements.txt
 
       - name: Verify Python dependencies
-        run: python3 -c "import aiosqlite; print('aiosqlite ok')"
+        run: python3 -c "import sys, aiosqlite; print(sys.executable); print('aiosqlite ok:', aiosqlite.__version__)"
 
       - name: Set up Java 17
         uses: actions/setup-java@v5
@@ -88,10 +88,12 @@ jobs:
           --branch master
 
       - name: Generate parser catalog SQLite
-        run: >
-          python3 scripts/build_catalog_db.py
-          --input public/data/sources.json
-          --output public/data/sources.sqlite
+        run: |
+          python3 -m pip install aiosqlite==0.21.0
+          python3 -c "import sys, aiosqlite; print(sys.executable); print('aiosqlite ok:', aiosqlite.__version__)"
+          python3 scripts/build_catalog_db.py \
+            --input public/data/sources.json \
+            --output public/data/sources.sqlite
 
       - name: Build site
         run: npm run build
