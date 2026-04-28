@@ -229,7 +229,7 @@ function handleScroll() {
 
   scrollFrame = window.requestAnimationFrame(() => {
     const y = window.scrollY;
-    const isMobile = window.innerWidth <= 920;
+    const isMobile = window.matchMedia("(max-width: 920px)").matches;
 
     measureTopbar();
 
@@ -264,6 +264,12 @@ function handleScroll() {
 }
 
 function scrollToSection(id: string) {
+  // Validate the target exists before mutating any state.
+  if (id !== "home") {
+    const el = document.getElementById(id);
+    if (!el) return;
+  }
+
   // Set active nav first so the drawer button briefly shows highlighted
   // before Vue unmounts the drawer.
   activeNav.value = id;
@@ -281,8 +287,6 @@ function scrollToSection(id: string) {
   const element = document.getElementById(id);
   const topbar = topbarEl.value;
   const offset = (topbar?.offsetHeight ?? 0) + 24;
-
-  if (!element) return;
 
   const y = element.getBoundingClientRect().top + window.scrollY - offset;
   window.scrollTo({ top: Math.max(y, 0), behavior: "smooth" });
