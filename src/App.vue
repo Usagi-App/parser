@@ -239,7 +239,7 @@ function handleScroll() {
     const shell = shellEl.value;
     const layout = layoutEl.value;
 
-    if (!isMobile && slot && shell && layout && topbarHeight.value > 0) {
+    if (slot && shell && layout && topbarHeight.value > 0) {
       const slotTop = slot.getBoundingClientRect().top + y;
       const shellTop = shell.getBoundingClientRect().top + y;
       const layoutTop = layout.getBoundingClientRect().top + y;
@@ -248,9 +248,20 @@ function handleScroll() {
       const dockAbsTop = layoutTop - topbarHeight.value - 16;
       const dockTopInShell = Math.max(dockAbsTop - shellTop, 0);
 
-      isTopbarDocked.value = y >= dockAbsTop;
-      isTopbarPinned.value = y >= pinStart && !isTopbarDocked.value;
-      topbarDockTop.value = dockTopInShell;
+      if (isMobile) {
+        // Mobile: pin when scrolled past initial position, never dock.
+        // The topbar stays visible at the top of the viewport at all times
+        // once the user scrolls past the hero section.
+        isTopbarPinned.value = y >= pinStart;
+        isTopbarDocked.value = false;
+        topbarDockTop.value = 0;
+      } else {
+        // Desktop: pin above the filter section, then dock above the
+        // catalog section when the user scrolls further.
+        isTopbarDocked.value = y >= dockAbsTop;
+        isTopbarPinned.value = y >= pinStart && !isTopbarDocked.value;
+        topbarDockTop.value = dockTopInShell;
+      }
     } else {
       isTopbarPinned.value = false;
       isTopbarDocked.value = false;
